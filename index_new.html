@@ -1,0 +1,853 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#4F46E5">
+    <meta name="description" content="物化生学习助手 - 智能诊断、自适应学习、精准提升">
+    <title>物化生学习助手</title>
+    <link rel="manifest" href="manifest.json">
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+        :root {
+            --primary: #4F46E5; --primary-light: #818CF8; --success: #10B981;
+            --warning: #F59E0B; --danger: #EF4444; --bg: #F3F4F6;
+            --card: #FFFFFF; --text: #1F2937; --text-light: #6B7280;
+            --border: #E5E7EB; --bio: #059669; --chem: #DC2626; --phys: #2563EB;
+        }
+        body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; padding-bottom: 70px; }
+        .header { background: linear-gradient(135deg, var(--primary), var(--primary-light)); color: white; padding: 20px; text-align: center; }
+        .header h1 { font-size: 20px; margin-bottom: 5px; }
+        .container { padding: 15px; max-width: 600px; margin: 0 auto; }
+        .card { background: var(--card); border-radius: 16px; padding: 20px; margin-bottom: 15px; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .subject-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; margin-top: 15px; }
+        .subject-card { background: white; border-radius: 16px; padding: 20px 10px; text-align: center; cursor: pointer; transition: all 0.3s; border: 2px solid transparent; box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+        .subject-card:active { transform: scale(0.96); }
+        .subject-card.bio { border-color: var(--bio); } .subject-card.chem { border-color: var(--chem); } .subject-card.phys { border-color: var(--phys); }
+        .subject-icon { font-size: 36px; margin-bottom: 8px; } .subject-name { font-weight: 600; font-size: 15px; }
+        .subject-desc { font-size: 11px; color: var(--text-light); margin-top: 4px; }
+        .btn { display: block; width: 100%; padding: 14px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; margin-top: 15px; }
+        .btn:active { transform: scale(0.98); opacity: 0.9; }
+        .btn-success { background: var(--success); } .btn-warning { background: var(--warning); }
+        .btn-outline { background: transparent; border: 2px solid var(--primary); color: var(--primary); }
+        .progress-bar { height: 8px; background: var(--border); border-radius: 4px; overflow: hidden; margin: 15px 0; }
+        .progress-fill { height: 100%; background: linear-gradient(90deg, var(--primary), var(--primary-light)); transition: width 0.3s; border-radius: 4px; }
+        .question-text { font-size: 16px; line-height: 1.7; margin-bottom: 20px; }
+        .option-list { display: flex; flex-direction: column; gap: 10px; }
+        .option-item { display: flex; align-items: flex-start; padding: 14px 16px; background: #F9FAFB; border: 2px solid var(--border); border-radius: 12px; cursor: pointer; transition: all 0.2s; font-size: 15px; line-height: 1.5; }
+        .option-item:active { transform: scale(0.98); }
+        .option-item.selected { border-color: var(--primary); background: #EEF2FF; }
+        .option-item.correct { border-color: var(--success); background: #D1FAE5; }
+        .option-item.wrong { border-color: var(--danger); background: #FEE2E2; }
+        .option-letter { width: 26px; height: 26px; background: var(--border); border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 12px; flex-shrink: 0; font-size: 14px; }
+        .option-item.selected .option-letter { background: var(--primary); color: white; }
+        .option-item.correct .option-letter { background: var(--success); color: white; }
+        .option-item.wrong .option-letter { background: var(--danger); color: white; }
+        .feedback { margin-top: 20px; padding: 16px; border-radius: 12px; font-size: 14px; line-height: 1.6; display: none; }
+        .feedback.show { display: block; }
+        .feedback.correct { background: #D1FAE5; border: 1px solid var(--success); color: #065F46; }
+        .feedback.wrong { background: #FEE2E2; border: 1px solid var(--danger); color: #991B1B; }
+        .nav-bar { position: fixed; bottom: 0; left: 0; right: 0; background: white; display: flex; justify-content: space-around; padding: 10px 0; box-shadow: 0 -2px 10px rgba(0,0,0,0.08); z-index: 100; }
+        .nav-item { display: flex; flex-direction: column; align-items: center; font-size: 11px; color: var(--text-light); cursor: pointer; transition: all 0.2s; padding: 5px 15px; }
+        .nav-item.active { color: var(--primary); }
+        .nav-icon { font-size: 22px; margin-bottom: 3px; }
+        .page { display: none; } .page.active { display: block; }
+        
+        /* 搜索框 */
+        .search-box { display: flex; gap: 10px; margin-bottom: 15px; }
+        .search-input { flex: 1; padding: 12px 16px; border: 2px solid var(--border); border-radius: 12px; font-size: 15px; outline: none; transition: border-color 0.2s; }
+        .search-input:focus { border-color: var(--primary); }
+        .search-btn { padding: 12px 20px; background: var(--primary); color: white; border: none; border-radius: 12px; font-size: 15px; cursor: pointer; }
+        
+        /* 章节卡片 */
+        .chapter-list { display: flex; flex-direction: column; gap: 10px; }
+        .chapter-item { display: flex; align-items: center; padding: 16px; background: white; border-radius: 12px; cursor: pointer; transition: all 0.2s; border: 2px solid var(--border); }
+        .chapter-item:active { transform: scale(0.98); }
+        .chapter-item.selected { border-color: var(--primary); background: #EEF2FF; }
+        .chapter-num { width: 40px; height: 40px; background: var(--primary); color: white; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 600; margin-right: 15px; flex-shrink: 0; }
+        .chapter-info { flex: 1; }
+        .chapter-name { font-weight: 600; font-size: 15px; }
+        .chapter-meta { font-size: 12px; color: var(--text-light); margin-top: 3px; }
+        .chapter-arrow { color: var(--text-light); font-size: 18px; }
+        
+        /* 统计卡片 */
+        .stat-grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px; margin-top: 15px; }
+        .stat-card { background: #F9FAFB; border-radius: 12px; padding: 16px; text-align: center; }
+        .stat-value { font-size: 28px; font-weight: 700; color: var(--primary); }
+        .stat-label { font-size: 12px; color: var(--text-light); margin-top: 5px; }
+        
+        /* 错题本 */
+        .wrong-item { padding: 16px; background: white; border-radius: 12px; margin-bottom: 10px; border: 2px solid var(--border); }
+        .wrong-question { font-size: 14px; line-height: 1.6; margin-bottom: 10px; }
+        .wrong-answer { font-size: 13px; color: var(--danger); margin-bottom: 10px; }
+        .wrong-actions { display: flex; gap: 10px; }
+        .wrong-btn { flex: 1; padding: 10px; border: none; border-radius: 8px; font-size: 13px; cursor: pointer; }
+        .wrong-btn.mastered { background: #D1FAE5; color: #065F46; }
+        .wrong-btn.favorite { background: #FEF3C7; color: #92400E; }
+        .wrong-btn.delete { background: #FEE2E2; color: #991B1B; }
+        
+        /* 收藏夹 */
+        .favorite-item { padding: 16px; background: white; border-radius: 12px; margin-bottom: 10px; border: 2px solid var(--warning); }
+        .favorite-tag { display: inline-block; padding: 4px 10px; background: var(--warning); color: white; border-radius: 20px; font-size: 11px; margin-bottom: 8px; }
+        
+        /* 学习报告 */
+        .report-card { background: white; border-radius: 16px; padding: 20px; margin-bottom: 15px; }
+        .report-title { font-size: 16px; font-weight: 600; margin-bottom: 15px; }
+        .chart-container { height: 200px; margin: 15px 0; }
+        
+        /* 加载动画 */
+        .loading { display: flex; justify-content: center; align-items: center; padding: 40px; }
+        .spinner { width: 40px; height: 40px; border: 4px solid var(--border); border-top-color: var(--primary); border-radius: 50%; animation: spin 1s linear infinite; }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        
+        /* 计时器 */
+        .timer { position: fixed; top: 20px; right: 20px; background: var(--danger); color: white; padding: 8px 16px; border-radius: 20px; font-weight: 600; font-size: 14px; z-index: 50; }
+        .timer.warning { background: var(--warning); animation: pulse 0.5s infinite; }
+        @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: 0.7; } }
+        
+        /* 空状态 */
+        .empty-state { text-align: center; padding: 40px 20px; color: var(--text-light); }
+        .empty-icon { font-size: 48px; margin-bottom: 15px; }
+        .empty-text { font-size: 14px; }
+        
+        /* 图片错误处理 */
+        .question-image { max-width: 100%; border-radius: 8px; margin-bottom: 15px; background: #f0f0f0; min-height: 100px; display: flex; align-items: center; justify-content: center; color: var(--text-light); font-size: 12px; }
+        .question-image img { max-width: 100%; border-radius: 8px; }
+        
+        /* 底部安全区 */
+        .safe-area { height: 80px; }
+    </style>
+</head>
+<body>
+    <!-- 顶部计时器 -->
+    <div class="timer" id="timer" style="display:none;">00:00</div>
+    
+    <!-- 首页 -->
+    <div id="page-home" class="page active">
+        <div class="header">
+            <h1>🧬 物化生学习助手</h1>
+            <p>智能诊断 · 自适应学习 · 精准提升</p>
+        </div>
+        <div class="container">
+            <div class="card">
+                <div style="text-align:center;margin-bottom:10px;"><span style="font-size:48px;">📚</span></div>
+                <h3 style="text-align:center;margin-bottom:5px;">选择科目开始学习</h3>
+                <p style="text-align:center;font-size:13px;color:var(--text-light);">首次学习需要完成诊断测试</p>
+                <div class="subject-grid">
+                    <div class="subject-card bio" onclick="selectSubject('bio')">
+                        <div class="subject-icon">🧬</div>
+                        <div class="subject-name">生物</div>
+                        <div class="subject-desc">必修一二</div>
+                    </div>
+                    <div class="subject-card chem" onclick="selectSubject('chem')">
+                        <div class="subject-icon">⚗️</div>
+                        <div class="subject-name">化学</div>
+                        <div class="subject-desc">必修一二</div>
+                    </div>
+                    <div class="subject-card phys" onclick="selectSubject('phys')">
+                        <div class="subject-icon">🔬</div>
+                        <div class="subject-name">物理</div>
+                        <div class="subject-desc">必修一二</div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="card">
+                <h3 style="margin-bottom:15px;">📊 学习概览</h3>
+                <div class="stat-grid" id="home-stats">
+                    <div class="stat-card">
+                        <div class="stat-value" id="total-questions">0</div>
+                        <div class="stat-label">总做题数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="accuracy-rate">0%</div>
+                        <div class="stat-label">正确率</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="streak-days">0</div>
+                        <div class="stat-label">连续天数</div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-value" id="mastered-count">0</div>
+                        <div class="stat-label">已掌握</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 章节列表页 -->
+    <div id="page-chapters" class="page">
+        <div class="header">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div onclick="goHome()" style="cursor:pointer;font-size:20px;">←</div>
+                <div>
+                    <h1 style="font-size:18px;" id="chapter-title">选择章节</h1>
+                    <p style="font-size:12px;" id="chapter-subtitle">生物 · 必修一二</p>
+                </div>
+                <div style="width:30px;"></div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="search-box">
+                <input type="text" class="search-input" id="chapter-search" placeholder="搜索章节..." oninput="filterChapters()">
+                <button class="search-btn" onclick="filterChapters()">🔍</button>
+            </div>
+            <div class="chapter-list" id="chapter-list">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- 练习页 -->
+    <div id="page-practice" class="page">
+        <div class="header">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div onclick="exitPractice()" style="cursor:pointer;font-size:20px;">←</div>
+                <div>
+                    <h1 style="font-size:16px;" id="practice-title">练习中</h1>
+                    <p style="font-size:12px;" id="practice-progress">1/10</p>
+                </div>
+                <div style="width:30px;"></div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="progress-bar"><div class="progress-fill" id="practice-progress-bar" style="width:0%"></div></div>
+            <div class="card">
+                <div class="question-text" id="question-text"></div>
+                <div class="question-image" id="question-image"></div>
+                <div class="option-list" id="option-list"></div>
+                <div class="feedback" id="feedback"></div>
+                <button class="btn btn-success" id="next-btn" style="display:none;" onclick="nextQuestion()">下一题</button>
+                <button class="btn btn-outline" id="fav-btn" style="display:none;margin-top:10px;" onclick="toggleFavorite()">⭐ 收藏此题</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 错题本页 -->
+    <div id="page-wrong" class="page">
+        <div class="header">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div onclick="goHome()" style="cursor:pointer;font-size:20px;">←</div>
+                <div>
+                    <h1 style="font-size:18px;">❌ 错题本</h1>
+                    <p style="font-size:12px;" id="wrong-count">0 道错题</p>
+                </div>
+                <button onclick="clearAllWrong()" style="background:none;border:none;color:white;font-size:12px;cursor:pointer;">清空</button>
+            </div>
+        </div>
+        <div class="container" id="wrong-list-container">
+            <div class="empty-state" id="wrong-empty">
+                <div class="empty-icon">✨</div>
+                <div class="empty-text">暂无错题，继续保持！</div>
+            </div>
+            <div id="wrong-list"></div>
+        </div>
+    </div>
+    
+    <!-- 收藏夹页 -->
+    <div id="page-favorite" class="page">
+        <div class="header">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div onclick="goHome()" style="cursor:pointer;font-size:20px;">←</div>
+                <div>
+                    <h1 style="font-size:18px;">⭐ 收藏夹</h1>
+                    <p style="font-size:12px;" id="favorite-count">0 道收藏</p>
+                </div>
+                <div style="width:30px;"></div>
+            </div>
+        </div>
+        <div class="container" id="favorite-list-container">
+            <div class="empty-state" id="favorite-empty">
+                <div class="empty-icon">💫</div>
+                <div class="empty-text">收藏喜欢的题目，方便复习</div>
+            </div>
+            <div id="favorite-list"></div>
+        </div>
+    </div>
+    
+    <!-- 学习报告页 -->
+    <div id="page-report" class="page">
+        <div class="header">
+            <div style="display:flex;justify-content:space-between;align-items:center;">
+                <div onclick="goHome()" style="cursor:pointer;font-size:20px;">←</div>
+                <div>
+                    <h1 style="font-size:18px;">📊 学习报告</h1>
+                    <p style="font-size:12px;">近7天学习趋势</p>
+                </div>
+                <div style="width:30px;"></div>
+            </div>
+        </div>
+        <div class="container">
+            <div class="report-card">
+                <div class="report-title">📈 正确率趋势</div>
+                <div class="chart-container">
+                    <canvas id="accuracyChart"></canvas>
+                </div>
+            </div>
+            <div class="report-card">
+                <div class="report-title">📚 章节掌握度</div>
+                <div class="chart-container">
+                    <canvas id="chapterChart"></canvas>
+                </div>
+            </div>
+            <div class="card">
+                <h3 style="margin-bottom:15px;">🏆 学习成就</h3>
+                <div id="achievements"></div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 底部导航 -->
+    <div class="nav-bar" id="nav-bar">
+        <div class="nav-item active" onclick="switchTab('home')">
+            <span class="nav-icon">🏠</span>
+            <span>首页</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('wrong')">
+            <span class="nav-icon">❌</span>
+            <span>错题</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('favorite')">
+            <span class="nav-icon">⭐</span>
+            <span>收藏</span>
+        </div>
+        <div class="nav-item" onclick="switchTab('report')">
+            <span class="nav-icon">📊</span>
+            <span>报告</span>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+    <script>
+    // ==================== 全局状态 ====================
+    let currentSubject = null;
+    let currentChapter = null;
+    let questions = [];
+    let currentIndex = 0;
+    let selectedAnswer = null;
+    let wrongQuestions = [];
+    let favoriteQuestions = [];
+    let timer = null;
+    let timeLeft = 0;
+    let accuracyChart = null;
+    let chapterChart = null;
+
+    // 章节数据（简化版）
+    const CHAPTERS = {
+        bio: [
+            {id:1,name:'走近细胞',count:45},{id:2,name:'组成细胞的分子',count:52},{id:3,name:'细胞的基本结构',count:48},
+            {id:4,name:'细胞的物质输入和输出',count:42},{id:5,name:'细胞的能量供应和利用',count:55},{id:6,name:'细胞的生命历程',count:50},
+            {id:7,name:'遗传因子的发现',count:58},{id:8,name:'基因和染色体的关系',count:52},{id:9,name:'基因的本质',count:48},
+            {id:10,name:'基因的表达',count:45},{id:11,name:'生物变异',count:42},{id:12,name:'现代生物进化理论',count:38}
+        ],
+        chem: [
+            {id:1,name:'物质的分类及转化',count:35},{id:2,name:'离子反应',count:38},{id:3,name:'氧化还原反应',count:32},
+            {id:4,name:'钠及其化合物',count:28},{id:5,name:'氯及其化合物',count:30},{id:6,name:'物质的量',count:32},
+            {id:7,name:'铁 金属材料',count:28},{id:8,name:'元素周期律',count:35},{id:9,name:'硫及其化合物',count:30},
+            {id:10,name:'氮及其化合物',count:28},{id:11,name:'化学反应与能量',count:32},{id:12,name:'化学反应速率与限度',count:30},
+            {id:13,name:'有机化合物',count:35},{id:14,name:'基本营养物质',count:25}
+        ],
+        phys: [
+            {id:1,name:'运动的描述',count:42},{id:2,name:'匀变速直线运动',count:38},{id:3,name:'相互作用',count:40},
+            {id:4,name:'牛顿运动定律',count:42},{id:5,name:'曲线运动',count:38},{id:6,name:'圆周运动',count:36},
+            {id:7,name:'万有引力',count:35},{id:8,name:'机械能守恒',count:45}
+        ]
+    };
+
+    const SUBJECT_NAMES = { bio: '生物', chem: '化学', phys: '物理' };
+    const SUBJECT_NAMES_FULL = { bio: '生物 · 必修一二', chem: '化学 · 必修一二', phys: '物理 · 必修一二' };
+
+    // ==================== 初始化 ====================
+    function init() {
+        loadData();
+        updateHomeStats();
+        setupCharts();
+        // 注册Service Worker
+        if ('serviceWorker' in navigator) {
+            navigator.serviceWorker.register('sw.js').catch(e => console.log('SW not available'));
+        }
+    }
+
+    function loadData() {
+        const wrong = localStorage.getItem('wrongQuestions');
+        if (wrong) wrongQuestions = JSON.parse(wrong);
+        const fav = localStorage.getItem('favoriteQuestions');
+        if (fav) favoriteQuestions = JSON.parse(fav);
+        updateWrongCount();
+        updateFavoriteCount();
+    }
+
+    function saveWrongQuestions() {
+        localStorage.setItem('wrongQuestions', JSON.stringify(wrongQuestions));
+        updateWrongCount();
+    }
+
+    function saveFavoriteQuestions() {
+        localStorage.setItem('favoriteQuestions', JSON.stringify(favoriteQuestions));
+        updateFavoriteCount();
+    }
+
+    // ==================== 导航 ====================
+    function switchTab(tab) {
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        document.getElementById('page-' + tab).classList.add('active');
+        event.currentTarget.classList.add('active');
+        
+        if (tab === 'report') {
+            updateCharts();
+        }
+    }
+
+    function goHome() {
+        switchTab('home');
+        document.querySelectorAll('.nav-item')[0].classList.add('active');
+        updateHomeStats();
+    }
+
+    // ==================== 科目选择 ====================
+    function selectSubject(subject) {
+        currentSubject = subject;
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-chapters').classList.add('active');
+        document.getElementById('chapter-title').textContent = SUBJECT_NAMES[subject];
+        document.getElementById('chapter-subtitle').textContent = SUBJECT_NAMES_FULL[subject];
+        document.getElementById('chapter-search').value = '';
+        renderChapters();
+    }
+
+    function renderChapters() {
+        const list = document.getElementById('chapter-list');
+        const chapters = CHAPTERS[currentSubject] || [];
+        list.innerHTML = chapters.map(c => `
+            <div class="chapter-item" onclick="startPractice(${c.id})">
+                <div class="chapter-num">${c.id}</div>
+                <div class="chapter-info">
+                    <div class="chapter-name">${c.name}</div>
+                    <div class="chapter-meta">${c.count} 道题目</div>
+                </div>
+                <div class="chapter-arrow">›</div>
+            </div>
+        `).join('');
+    }
+
+    function filterChapters() {
+        const keyword = document.getElementById('chapter-search').value.toLowerCase();
+        const chapters = CHAPTERS[currentSubject] || [];
+        const filtered = chapters.filter(c => c.name.toLowerCase().includes(keyword));
+        const list = document.getElementById('chapter-list');
+        list.innerHTML = filtered.map(c => `
+            <div class="chapter-item" onclick="startPractice(${c.id})">
+                <div class="chapter-num">${c.id}</div>
+                <div class="chapter-info">
+                    <div class="chapter-name">${c.name}</div>
+                    <div class="chapter-meta">${c.count} 道题目</div>
+                </div>
+                <div class="chapter-arrow">›</div>
+            </div>
+        `).join('');
+        
+        if (filtered.length === 0) {
+            list.innerHTML = '<div class="empty-state"><div class="empty-icon">🔍</div><div class="empty-text">没有找到相关章节</div></div>';
+        }
+    }
+
+    // ==================== 练习 ====================
+    function startPractice(chapterId) {
+        currentChapter = chapterId;
+        currentIndex = 0;
+        
+        // 生成模拟题目
+        questions = generateQuestions(currentSubject, chapterId);
+        
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById('page-practice').classList.add('active');
+        document.getElementById('nav-bar').style.display = 'none';
+        
+        const chapter = CHAPTERS[currentSubject].find(c => c.id === chapterId);
+        document.getElementById('practice-title').textContent = chapter ? chapter.name : '练习';
+        
+        renderQuestion();
+    }
+
+    function generateQuestions(subject, chapterId) {
+        // 生成模拟题目（实际应用中从JSON加载）
+        const q = [];
+        const topics = {
+            bio: ['细胞结构', '光合作用', '呼吸作用', '有丝分裂', '减数分裂', '遗传规律', 'DNA复制', '基因表达'],
+            chem: ['物质分类', '离子反应', '氧化还原', '金属性质', '元素周期律', '化学反应速率', '化学平衡', '有机物'],
+            phys: ['运动描述', '匀变速运动', '力学', '牛顿定律', '曲线运动', '圆周运动', '万有引力', '机械能']
+        };
+        const t = topics[subject] || topics.bio;
+        
+        for (let i = 0; i < 10; i++) {
+            q.push({
+                id: chapterId * 100 + i,
+                question: `【第${chapterId}章】${t[i % t.length]}相关练习题 ${i + 1}。以下关于这道题的说法正确的是？`,
+                options: ['选项A：这是第一个选项的描述', '选项B：这是第二个选项的描述', '选项C：这是第三个选项的描述', '选项D：这是第四个选项的描述'],
+                correct: Math.floor(Math.random() * 4),
+                timeLimit: 60,
+                explanation: '正确答案解析：这道题考查的是相关知识点的理解与应用。'
+            });
+        }
+        return q;
+    }
+
+    function renderQuestion() {
+        if (currentIndex >= questions.length) {
+            showPracticeResult();
+            return;
+        }
+        
+        const q = questions[currentIndex];
+        document.getElementById('practice-progress').textContent = `${currentIndex + 1}/${questions.length}`;
+        document.getElementById('practice-progress-bar').style.width = `${((currentIndex) / questions.length) * 100}%`;
+        document.getElementById('question-text').textContent = q.question;
+        document.getElementById('question-image').innerHTML = q.image ? `<img src="${q.image}" alt="题目图片" onerror="this.parentElement.innerHTML='[图片加载失败]'">` : '';
+        
+        const letters = ['A', 'B', 'C', 'D'];
+        document.getElementById('option-list').innerHTML = q.options.map((opt, i) => `
+            <div class="option-item" onclick="selectOption(${i})" data-index="${i}">
+                <div class="option-letter">${letters[i]}</div>
+                <div>${opt}</div>
+            </div>
+        `).join('');
+        
+        document.getElementById('feedback').className = 'feedback';
+        document.getElementById('feedback').style.display = 'none';
+        document.getElementById('next-btn').style.display = 'none';
+        document.getElementById('fav-btn').style.display = 'none';
+        
+        selectedAnswer = null;
+        startTimer(q.timeLimit);
+    }
+
+    function selectOption(index) {
+        if (selectedAnswer !== null) return;
+        
+        selectedAnswer = index;
+        const q = questions[currentIndex];
+        const options = document.querySelectorAll('.option-item');
+        
+        options.forEach((opt, i) => {
+            opt.onclick = null;
+            if (i === q.correct) {
+                opt.classList.add('correct');
+            } else if (i === index && index !== q.correct) {
+                opt.classList.add('wrong');
+            }
+        });
+        
+        stopTimer();
+        
+        // 显示反馈
+        const feedback = document.getElementById('feedback');
+        const isCorrect = index === q.correct;
+        feedback.className = 'feedback show ' + (isCorrect ? 'correct' : 'wrong');
+        feedback.innerHTML = `<strong>${isCorrect ? '✅ 回答正确！' : '❌ 回答错误'}</strong><br>${q.explanation || ''}`;
+        
+        // 记录错题
+        if (!isCorrect) {
+            addToWrong(q);
+        }
+        
+        document.getElementById('next-btn').style.display = 'block';
+        document.getElementById('fav-btn').style.display = 'block';
+        document.getElementById('fav-btn').textContent = isFavorite(q.id) ? '⭐ 已收藏' : '⭐ 收藏此题';
+    }
+
+    function nextQuestion() {
+        currentIndex++;
+        renderQuestion();
+    }
+
+    function showPracticeResult() {
+        const correct = questions.filter((q, i) => i < currentIndex && q.selected === q.correct).length;
+        const accuracy = Math.round((correct / questions.length) * 100);
+        
+        document.getElementById('question-text').textContent = '🎉 练习完成！';
+        document.getElementById('option-list').innerHTML = `
+            <div style="text-align:center;padding:20px;">
+                <div style="font-size:48px;margin-bottom:15px;">${accuracy >= 80 ? '🎉' : accuracy >= 60 ? '💪' : '📚'}</div>
+                <div style="font-size:24px;font-weight:600;">正确率 ${accuracy}%</div>
+                <div style="color:var(--text-light);margin-top:10px;">完成 ${questions.length} 道题目</div>
+            </div>
+        `;
+        document.getElementById('next-btn').textContent = '返回章节';
+        document.getElementById('next-btn').onclick = () => {
+            document.getElementById('nav-bar').style.display = 'flex';
+            goHome();
+        };
+        document.getElementById('next-btn').style.display = 'block';
+        document.getElementById('fav-btn').style.display = 'none';
+        document.getElementById('timer').style.display = 'none';
+        
+        // 保存学习记录
+        saveStudyRecord(accuracy);
+    }
+
+    function exitPractice() {
+        stopTimer();
+        document.getElementById('nav-bar').style.display = 'flex';
+        goHome();
+    }
+
+    // ==================== 计时器 ====================
+    function startTimer(seconds) {
+        timeLeft = seconds;
+        updateTimerDisplay();
+        document.getElementById('timer').style.display = 'block';
+        
+        timer = setInterval(() => {
+            timeLeft--;
+            updateTimerDisplay();
+            
+            if (timeLeft <= 10) {
+                document.getElementById('timer').classList.add('warning');
+            }
+            
+            if (timeLeft <= 0) {
+                stopTimer();
+                // 超时自动提交
+                if (selectedAnswer === null) {
+                    selectOption(-1); // 不选任何答案视为错误
+                }
+            }
+        }, 1000);
+    }
+
+    function stopTimer() {
+        if (timer) {
+            clearInterval(timer);
+            timer = null;
+        }
+        document.getElementById('timer').style.display = 'none';
+        document.getElementById('timer').classList.remove('warning');
+    }
+
+    function updateTimerDisplay() {
+        const mins = Math.floor(timeLeft / 60);
+        const secs = timeLeft % 60;
+        document.getElementById('timer').textContent = `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+    }
+
+    // ==================== 错题本 ====================
+    function addToWrong(question) {
+        if (!wrongQuestions.find(q => q.id === question.id)) {
+            wrongQuestions.push({...question, subject: currentSubject, chapter: currentChapter, date: new Date().toISOString()});
+            saveWrongQuestions();
+        }
+    }
+
+    function renderWrongList() {
+        const container = document.getElementById('wrong-list');
+        const empty = document.getElementById('wrong-empty');
+        
+        if (wrongQuestions.length === 0) {
+            container.innerHTML = '';
+            empty.style.display = 'block';
+            return;
+        }
+        
+        empty.style.display = 'none';
+        container.innerHTML = wrongQuestions.map((q, i) => `
+            <div class="wrong-item">
+                <div class="favorite-tag">${SUBJECT_NAMES[q.subject] || ''}</div>
+                <div class="wrong-question">${q.question}</div>
+                <div class="wrong-answer">正确答案：${String.fromCharCode(65 + q.correct)}</div>
+                <div class="wrong-actions">
+                    <button class="wrong-btn mastered" onclick="markMastered(${i})">✓ 已掌握</button>
+                    <button class="wrong-btn favorite" onclick="addToFav(${i})">⭐ 收藏</button>
+                    <button class="wrong-btn delete" onclick="deleteWrong(${i})">🗑️</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function markMastered(index) {
+        wrongQuestions.splice(index, 1);
+        saveWrongQuestions();
+        renderWrongList();
+    }
+
+    function deleteWrong(index) {
+        wrongQuestions.splice(index, 1);
+        saveWrongQuestions();
+        renderWrongList();
+    }
+
+    function updateWrongCount() {
+        document.getElementById('wrong-count').textContent = `${wrongQuestions.length} 道错题`;
+        renderWrongList();
+    }
+
+    function clearAllWrong() {
+        if (confirm('确定要清空所有错题吗？')) {
+            wrongQuestions = [];
+            saveWrongQuestions();
+        }
+    }
+
+    // ==================== 收藏夹 ====================
+    function addToFav(index) {
+        if (typeof index === 'number') {
+            const q = wrongQuestions[index];
+            if (q && !isFavorite(q.id)) {
+                favoriteQuestions.push(q);
+                saveFavoriteQuestions();
+            }
+        }
+    }
+
+    function isFavorite(id) {
+        return favoriteQuestions.find(q => q.id === id);
+    }
+
+    function toggleFavorite() {
+        const q = questions[currentIndex];
+        if (isFavorite(q.id)) {
+            favoriteQuestions = favoriteQuestions.filter(f => f.id !== q.id);
+        } else {
+            favoriteQuestions.push({...q, subject: currentSubject, chapter: currentChapter, date: new Date().toISOString()});
+        }
+        saveFavoriteQuestions();
+        document.getElementById('fav-btn').textContent = isFavorite(q.id) ? '⭐ 已收藏' : '⭐ 收藏此题';
+    }
+
+    function renderFavoriteList() {
+        const container = document.getElementById('favorite-list');
+        const empty = document.getElementById('favorite-empty');
+        
+        if (favoriteQuestions.length === 0) {
+            container.innerHTML = '';
+            empty.style.display = 'block';
+            return;
+        }
+        
+        empty.style.display = 'none';
+        container.innerHTML = favoriteQuestions.map((q, i) => `
+            <div class="favorite-item">
+                <div class="favorite-tag">${SUBJECT_NAMES[q.subject] || ''} · ${q.chapter}章</div>
+                <div class="wrong-question">${q.question}</div>
+                <div class="wrong-answer">正确答案：${String.fromCharCode(65 + q.correct)}</div>
+                <div class="wrong-actions">
+                    <button class="wrong-btn delete" onclick="removeFavorite(${i})">🗑️ 移除</button>
+                </div>
+            </div>
+        `).join('');
+    }
+
+    function removeFavorite(index) {
+        favoriteQuestions.splice(index, 1);
+        saveFavoriteQuestions();
+        renderFavoriteList();
+    }
+
+    function updateFavoriteCount() {
+        document.getElementById('favorite-count').textContent = `${favoriteQuestions.length} 道收藏`;
+        renderFavoriteList();
+    }
+
+    // ==================== 统计数据 ====================
+    function updateHomeStats() {
+        const records = JSON.parse(localStorage.getItem('studyRecords') || '[]');
+        const total = records.reduce((sum, r) => sum + r.count, 0);
+        const correct = records.reduce((sum, r) => sum + Math.round(r.accuracy * r.count / 100), 0);
+        const accuracy = total > 0 ? Math.round(correct / total * 100) : 0;
+        const streak = calculateStreak();
+        const mastered = wrongQuestions.length > 0 ? wrongQuestions.length : 0;
+        
+        document.getElementById('total-questions').textContent = total;
+        document.getElementById('accuracy-rate').textContent = accuracy + '%';
+        document.getElementById('streak-days').textContent = streak;
+        document.getElementById('mastered-count').textContent = mastered;
+    }
+
+    function calculateStreak() {
+        const records = JSON.parse(localStorage.getItem('studyRecords') || '[]');
+        let streak = 0;
+        const today = new Date().toDateString();
+        let checkDate = new Date();
+        
+        while (true) {
+            const dateStr = checkDate.toDateString();
+            if (records.find(r => new Date(r.date).toDateString() === dateStr)) {
+                streak++;
+                checkDate.setDate(checkDate.getDate() - 1);
+            } else if (streak === 0 && checkDate.toDateString() === today) {
+                checkDate.setDate(checkDate.getDate() - 1);
+            } else {
+                break;
+            }
+        }
+        return streak;
+    }
+
+    function saveStudyRecord(accuracy) {
+        const records = JSON.parse(localStorage.getItem('studyRecords') || '[]');
+        const today = new Date().toISOString().split('T')[0];
+        const existing = records.findIndex(r => r.date.startsWith(today));
+        
+        if (existing >= 0) {
+            records[existing].count += questions.length;
+            records[existing].accuracy = (records[existing].accuracy + accuracy) / 2;
+        } else {
+            records.push({ date: new Date().toISOString(), count: questions.length, accuracy: accuracy });
+        }
+        
+        localStorage.setItem('studyRecords', JSON.stringify(records.slice(-30)));
+        updateHomeStats();
+    }
+
+    // ==================== 图表 ====================
+    function setupCharts() {
+        // 正确率趋势图
+        const accuracyCtx = document.getElementById('accuracyChart').getContext('2d');
+        accuracyChart = new Chart(accuracyCtx, {
+            type: 'line',
+            data: { labels: [], datasets: [{ label: '正确率', data: [], borderColor: '#4F46E5', tension: 0.3 }] },
+            options: { responsive: true, scales: { y: { min: 0, max: 100 } } }
+        });
+        
+        // 章节掌握度图
+        const chapterCtx = document.getElementById('chapterChart').getContext('2d');
+        chapterChart = new Chart(chapterCtx, {
+            type: 'bar',
+            data: { labels: [], datasets: [{ label: '掌握度', data: [], backgroundColor: ['#4F46E5', '#10B981', '#F59E0B'] }] },
+            options: { responsive: true, indexAxis: 'y' }
+        });
+    }
+
+    function updateCharts() {
+        const records = JSON.parse(localStorage.getItem('studyRecords') || '[]').slice(-7);
+        
+        accuracyChart.data.labels = records.map(r => r.date.split('T')[0].slice(5));
+        accuracyChart.data.datasets[0].data = records.map(r => r.accuracy);
+        accuracyChart.update();
+        
+        chapterChart.data.labels = ['生物', '化学', '物理'];
+        chapterChart.data.datasets[0].data = [75, 60, 45]; // 示例数据
+        chapterChart.update();
+        
+        // 成就
+        const achievements = document.getElementById('achievements');
+        const total = records.reduce((sum, r) => sum + r.count, 0);
+        achievements.innerHTML = `
+            <div style="display:flex;gap:10px;flex-wrap:wrap;">
+                ${total >= 100 ? '<span style="background:#D1FAE5;color:#065F46;padding:8px 16px;border-radius:20px;font-size:13px;">🏆 刷题达人</span>' : ''}
+                ${records.length >= 7 ? '<span style="background:#FEE2E2;color:#991B1B;padding:8px 16px;border-radius:20px;font-size:13px;">🔥 连续学习</span>' : ''}
+                ${records.some(r => r.accuracy >= 90) ? '<span style="background:#FEF3C7;color:#92400E;padding:8px 16px;border-radius:20px;font-size:13px;">⭐ 满分达成</span>' : ''}
+            </div>
+        `;
+    }
+
+    // 初始化
+    init();
+    
+    // 页面切换时刷新列表
+    document.getElementById('page-wrong').addEventListener('click', renderWrongList);
+    document.getElementById('page-favorite').addEventListener('click', renderFavoriteList);
+    </script>
+</body>
+</html>

@@ -1,0 +1,42 @@
+{
+  "bio_chapters": [
+    {"id": 1, "name": "走近细胞", "questions": 45},
+    {"id": 2, "name": "组成细胞的分子", "questions": 52},
+    {"id": 3, "name": "细胞的基本结构", "questions": 48},
+    {"id": 4, "name": "细胞的物质输入和输出", "questions": 42},
+    {"id": 5, "name": "细胞的能量供应和利用", "questions": 55},
+    {"id": 6, "name": "细胞的生命历程", "questions": 50},
+    {"id": 7, "name": "遗传因子的发现", "questions": 58},
+    {"id": 8, "name": "基因和染色体的关系", "questions": 52},
+    {"id": 9, "name": "基因的本质", "questions": 48},
+    {"id": 10, "name": "基因的表达", "questions": 45},
+    {"id": 11, "name": "生物变异", "questions": 42},
+    {"id": 12, "name": "现代生物进化理论", "questions": 38}
+  ],
+  "chem_chapters": [
+    {"id": 1, "name": "物质的分类及转化", "questions": 35},
+    {"id": 2, "name": "离子反应", "questions": 38},
+    {"id": 3, "name": "氧化还原反应", "questions": 32},
+    {"id": 4, "name": "钠及其化合物", "questions": 28},
+    {"id": 5, "name": "氯及其化合物", "questions": 30},
+    {"id": 6, "name": "物质的量", "questions": 32},
+    {"id": 7, "name": "铁 金属材料", "questions": 28},
+    {"id": 8, "name": "元素周期律", "questions": 35},
+    {"id": 9, "name": "硫及其化合物", "questions": 30},
+    {"id": 10, "name": "氮及其化合物", "questions": 28},
+    {"id": 11, "name": "化学反应与能量", "questions": 32},
+    {"id": 12, "name": "化学反应速率与限度", "questions": 30},
+    {"id": 13, "name": "有机化合物", "questions": 35},
+    {"id": 14, "name": "基本营养物质", "questions": 25}
+  ],
+  "phys_chapters": [
+    {"id": 1, "name": "运动的描述", "questions": 42},
+    {"id": 2, "name": "匀变速直线运动", "questions": 38},
+    {"id": 3, "name": "相互作用", "questions": 40},
+    {"id": 4, "name": "牛顿运动定律", "questions": 42},
+    {"id": 5, "name": "曲线运动", "questions": 38},
+    {"id": 6, "name": "圆周运动", "questions": 36},
+    {"id": 7, "name": "万有引力", "questions": 35},
+    {"id": 8, "name": "机械能守恒", "questions": 45}
+  ]
+}
